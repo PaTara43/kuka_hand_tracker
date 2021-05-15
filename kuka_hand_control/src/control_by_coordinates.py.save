@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+
+import math
+import numpy as np
+import roboticstoolbox as rtb
+import rospkg
+import rospy
+
+from hand_detector.msg import coordinates
+from roboticstoolbox.robot import *
+from sensor_msgs.msg import JointState
+from spatialmath import *
+from std_msgs.msg import Float64MultiArray
+
+x_camera = 0.0
+y_camera = 0.0
+
+def callback_cam(data):
+    global x_camera, y_camera
+    rospy.loginfo("I heard coordinates from camera. \n x: %f, y: %f", data.x_cam, data.y_cam)
+    x_camera, y_camera = data.x_cam, data.y_cam
+
+
+def callback_joint_states(data):
+    global x_camera, y_camera
+    x_camera = 0.05
+    y_camera = 0.0
+
+    # if x_camera==0 or y_camera==0:
+    #     rospy.loginfo('No coordinates from camera')
+    #     return False
+
+    q = np.array(data.position)
+    print('q')
+    print(q[2])
+
+    J = kuka.jacob0(q)
+    J_inv = np.linalg.pinv(J)
+    e = np.array([0.0, x_camera, y_camera, 0.0, 0.0, 0.0]).T
+    print('e')
+    print(e)
+    #
+    dq = np.dot(J_inv, e)
+    print('dq')
+    print(dq)
+    ##look up for max dq, if > 0.03, divide by 0.03 and divide all by the result
+    maxvalue = np.amax(dq)
+    if maxvalue > 0.03:
+        divfactor = maxvalue/0.03
+        dq / divfactor
+        print('dq after division')
+        print(dq)
+
+    qnew = q + dq
+    print('qnew')
+    print(qnew)
+    # publisher(qnew)
+
+
+def publisher(arr):
+
+    data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
+    data_to_send.data = arr # assign the array with the value you want to send
+    pub.publish(data_to_send)
+
+
+robot = DHRobot(
+[
+    RevoluteDH(d=0.4, a=0.025, alpha=-math.pi/2),
+    RevoluteDH(a=0.455),
+    RevoluteDH(a=0.035, alpha=math.pi/2),
+    RevoluteDH(d=-0.4186, alpha=-math.pi/2),
+    RevoluteDH(alpha=math.pi/2),
+    RevoluteDH(d=-0.08, alpha=math.pi)
+], name="KUKAKR6")
+
+class KUKAKR6(DHRobot):
+
+    def __init__(self):
+        super().__init__(
+                [
+                    RevoluteDH(d=0.4, a=0.025, alpha=-math.pi/2),
+                    RevoluteDH(a=0.455),
+                    RevoluteDH(a=0.035, alpha=math.pi/2),
+                    RevoluteDH(d=-0.4186, alpha=-math.pi/2),
+                    RevoluteDH(alpha=math.pi/2),
+                    RevoluteDH(d=-0.08, alpha=math.pi)
+                ], name="KUKAKR6"
+                        )
+
+if __name__ == '__main__':
+
+    corr_a3 = -math.pi/2
+    kuka = KUKAKR6()
+    print(kuka)
+
+    rospy.init_node('control_generator', anonymous=True)
+    pub = rospy.Publisher('/joint_position_controller', Float64MultiArray, queue_size=10)
+    rospy.Subscriber("hand_coordinates", coordinates, callback_cam)
+    rospy.Subscriber("joint_states", JointState, callback_joint_states)
+    rospy.spin()
