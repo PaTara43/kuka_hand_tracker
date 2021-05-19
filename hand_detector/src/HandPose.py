@@ -782,6 +782,13 @@ class HandPose:
                     cv2.putText(self.img, kp_name, (x, y+10), cv2.FONT_HERSHEY_PLAIN, 0.7*thick_coef, (0,255,0), int(thick_coef+0.5))
             if self.show.center:
                 cv2.circle(self.img, (r.box_center_xa, r.box_center_ya), int(thick_coef*self.show.center_size+0.5), (255,160,0), -1)
+                # print(r.box_center_xa)
+                # print(self.img.shape[0]/2)
+                # print('---')
+                x = int(self.img.shape[1]/2)
+                y = int(self.img.shape[0]/2)
+                cv2.circle(self.img, (x, y), int(thick_coef*self.show.center_size+0.5), (255,160,0), -1)
+
             if self.show.rotation:
                 xr = int(50 * sin(r.rotation) + r.box_center_xa)
                 yr = int(-50 * cos(r.rotation) + r.box_center_ya)
@@ -789,10 +796,11 @@ class HandPose:
             if self.show.xyz:
                 x0, y0 = int(xb*self.wi-10), int((yb+h)*self.hi)+20
                 cv2.rectangle(self.img, (x0,y0), (x0+100, y0+85), (220,220,240), -1)
-                cv2.putText(self.img, f"X:{r.cam_coordinates[0]*100:3.0f} cm", (x0+10, y0+20), cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0), 2)
-                cv2.putText(self.img, f"Y:{-r.cam_coordinates[1]*100:3.0f} cm", (x0+10, y0+45), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255), 2)
+                cv2.putText(self.img, f"X:{r.cam_coordinates[0]/1.7*100:3.0f} cm", (x0+10, y0+20), cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0), 2)
+                cv2.putText(self.img, f"Y:{-r.cam_coordinates[1]/1.7*100:3.0f} cm", (x0+10, y0+45), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255), 2)
                 cv2.putText(self.img, f"Z:{r.cam_coordinates[2]*100:3.0f} cm", (x0+10, y0+70), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,0), 2)
-                pub.publish(r.cam_coordinates[0], -r.cam_coordinates[1])
+                # print(self.img.shape
+                pub.publish(r.cam_coordinates[0]/1.7, -r.cam_coordinates[1]/1.7)
 
             if self.use_landmarks:
                 if self.show.rot_rect:
